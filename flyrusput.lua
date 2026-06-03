@@ -3,7 +3,8 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 
 local flying = false
-local bodyVelocity = nil
+local bodyPosition = nil
+local bodyGyro = nil
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
@@ -21,51 +22,64 @@ flyButton.TextSize = 18
 local userInputService = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
 local moveDirection = Vector3.new()
+local speed = 60
 
 local function updateFly()
-    if not flying or not bodyVelocity then return end
+    if not flying or not bodyPosition then return end
     
-    local moveVector = Vector3.new()
+    moveDirection = Vector3.new()
     
     if userInputService:IsKeyDown(Enum.KeyCode.W) then
-        moveVector = moveVector + Vector3.new(0, 0, -1)
+        moveDirection = moveDirection + Vector3.new(0, 0, -1)
     end
     if userInputService:IsKeyDown(Enum.KeyCode.S) then
-        moveVector = moveVector + Vector3.new(0, 0, 1)
+        moveDirection = moveDirection + Vector3.new(0, 0, 1)
     end
     if userInputService:IsKeyDown(Enum.KeyCode.A) then
-        moveVector = moveVector + Vector3.new(-1, 0, 0)
+        moveDirection = moveDirection + Vector3.new(-1, 0, 0)
     end
     if userInputService:IsKeyDown(Enum.KeyCode.D) then
-        moveVector = moveVector + Vector3.new(1, 0, 0)
+        moveDirection = moveDirection + Vector3.new(1, 0, 0)
     end
     if userInputService:IsKeyDown(Enum.KeyCode.Space) then
-        moveVector = moveVector + Vector3.new(0, 1, 0)
+        moveDirection = moveDirection + Vector3.new(0, 1, 0)
     end
     if userInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-        moveVector = moveVector + Vector3.new(0, -1, 0)
+        moveDirection = moveDirection + Vector3.new(0, -1, 0)
     end
     
-    if moveVector.Magnitude > 0 then
-        moveVector = moveVector.Unit
+    if moveDirection.Magnitude > 0 then
+        moveDirection = moveDirection.Unit
     end
     
     local camera = workspace.CurrentCamera
-    local moveVelocity = (camera.CFrame:VectorToWorldSpace(moveVector)) * 80
-    bodyVelocity.Velocity = moveVelocity
+    local moveVector = (camera.CFrame:VectorToWorldSpace(moveDirection)) * speed
+    
+    local newPos = character.HumanoidRootPart.Position + moveVector
+    bodyPosition.Position = newPos
+    bodyGyro.CFrame = camera.CFrame
 end
 
 local function startFly()
     if flying then return end
     flying = true
     
-    bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
-    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    bodyVelocity.Parent = humanoid.Parent
+    local hrp = character:WaitForChild("HumanoidRootPart")
     
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+    bodyPosition = Instance.new("BodyPosition")
+    bodyPosition.MaxForce = Vector3.new(400000, 400000, 400000)
+    bodyPosition.D = 5000
+    bodyPosition.P = 20000
+    bodyPosition.Position = hrp.Position
+    bodyPosition.Parent = hrp
+    
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
+    bodyGyro.D = 500
+    bodyGyro.P = 20000
+    bodyGyro.CFrame = hrp.CFrame
+    bodyGyro.Parent = hrp
+    
     humanoid.PlatformStand = true
     
     flyButton.Text = "ВЫКЛЮЧИТЬ ПОЛЁТ"
@@ -78,13 +92,15 @@ local function stopFly()
     if not flying then return end
     flying = false
     
-    if bodyVelocity then
-        bodyVelocity:Destroy()
-        bodyVelocity = nil
+    if bodyPosition then
+        bodyPosition:Destroy()
+        bodyPosition = nil
+    end
+    if bodyGyro then
+        bodyGyro:Destroy()
+        bodyGyro = nil
     end
     
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
     humanoid.PlatformStand = false
     
     flyButton.Text = "ВКЛЮЧИТЬ ПОЛЁТ"
