@@ -1,11 +1,10 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
 local hrp = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
 
 local flying = false
-local bodyPosition = nil
-local bodyGyro = nil
+local speed = 60
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
@@ -24,9 +23,8 @@ local userInputService = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
 
 local moveDirection = Vector3.new()
-local speed = 60
 
-local function updateMovement()
+local function updateFly()
     if not flying then return end
     
     moveDirection = Vector3.new()
@@ -57,35 +55,13 @@ local function updateMovement()
     local camera = workspace.CurrentCamera
     local moveVector = (camera.CFrame:VectorToWorldSpace(moveDirection)) * speed
     
-    if bodyPosition then
-        bodyPosition.Position = hrp.Position + moveVector
-    end
-    
-    if bodyGyro then
-        bodyGyro.CFrame = camera.CFrame
-    end
+    hrp.CFrame = hrp.CFrame + moveVector
 end
 
 local function startFly()
     if flying then return end
     flying = true
-    
-    bodyPosition = Instance.new("BodyPosition")
-    bodyPosition.MaxForce = Vector3.new(400000, 400000, 400000)
-    bodyPosition.D = 5000
-    bodyPosition.P = 20000
-    bodyPosition.Position = hrp.Position
-    bodyPosition.Parent = hrp
-    
-    bodyGyro = Instance.new("BodyGyro")
-    bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
-    bodyGyro.D = 500
-    bodyGyro.P = 20000
-    bodyGyro.CFrame = hrp.CFrame
-    bodyGyro.Parent = hrp
-    
     humanoid.PlatformStand = true
-    
     flyButton.Text = "ВЫКЛЮЧИТЬ ПОЛЁТ"
     flyButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 end
@@ -93,18 +69,7 @@ end
 local function stopFly()
     if not flying then return end
     flying = false
-    
-    if bodyPosition then
-        bodyPosition:Destroy()
-        bodyPosition = nil
-    end
-    if bodyGyro then
-        bodyGyro:Destroy()
-        bodyGyro = nil
-    end
-    
     humanoid.PlatformStand = false
-    
     flyButton.Text = "ВКЛЮЧИТЬ ПОЛЁТ"
     flyButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
 end
@@ -117,12 +82,12 @@ flyButton.MouseButton1Click:Connect(function()
     end
 end)
 
-runService.RenderStepped:Connect(updateMovement)
+runService.RenderStepped:Connect(updateFly)
 
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
-    humanoid = character:WaitForChild("Humanoid")
     hrp = character:WaitForChild("HumanoidRootPart")
+    humanoid = character:WaitForChild("Humanoid")
     if flying then
         stopFly()
     end
